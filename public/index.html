@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube数据提取工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF0000, #FF4500);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .api-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 4px solid #FF0000;
+        }
+
+        .api-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .api-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .api-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .api-input:focus {
+            outline: none;
+            border-color: #FF0000;
+        }
+
+        .api-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #FF0000;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .search-section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #FF0000;
+        }
+
+        .search-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .option-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .option-group select,
+        .option-group input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, #FF0000, #FF4500);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255,0,0,0.3);
+        }
+
+        .btn-search:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255,0,0,0.4);
+        }
+
+        .btn-search:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF0000, #FF4500);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .results-stats {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .channel-link {
+            color: #FF0000;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .channel-link:hover {
+            text-decoration: underline;
+        }
+
+        .download-section {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .btn-download {
+            background: #28a745;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-download:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #FF0000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .api-status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .api-status.valid {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .api-status.invalid {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+
+            .api-input-group {
+                flex-direction: column;
+            }
+
+            .search-options {
+                grid-template-columns: 1fr;
+            }
+
+            .results-table {
+                font-size: 14px;
+            }
+
+            .results-table th,
+            .results-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 YouTube数据提取工具</h1>
+            <p>搜索YouTube视频并提取频道信息，生成Excel报表</p>
+        </div>
+
+        <div class="main-content">
+            <!-- API配置区域 -->
+            <div class="api-section">
+                <h3>🔑 YouTube API配置</h3>
+                <div class="api-input-group">
+                    <input type="text" id="apiKey" class="api-input" placeholder="请输入YouTube Data API Key" value="">
+                    <div class="api-buttons">
+                        <button class="btn btn-primary" onclick="saveApiKey()">保存API</button>
+                        <button class="btn btn-secondary" onclick="loadApiKeys()">快速切换</button>
+                    </div>
+                </div>
+                <div id="apiStatus" class="api-status" style="display: none;"></div>
+                <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                    💡 获取API密钥：访问 <a href="https://console.developers.google.com/" target="_blank">Google Cloud Console</a> 
+                    → 启用YouTube Data API v3 → 创建凭据
+                </p>
+            </div>
+
+            <!-- 搜索区域 -->
+            <div class="search-section">
+                <h3 style="margin-bottom: 20px; color: #333;">🔍 搜索设置</h3>
+                <input type="text" id="searchKeyword" class="search-input" placeholder="请输入搜索关键词（支持中英文）">
+                
+                <div class="search-options">
+                    <div class="option-group">
+                        <label>搜索类型</label>
+                        <select id="searchType">
+                            <option value="video">视频</option>
+                            <option value="channel">频道</option>
+                            <option value="playlist">播放列表</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label>结果数量</label>
+                        <select id="maxResults">
+                            <option value="10">10个</option>
+                            <option value="25">25个</option>
+                            <option value="50">50个</option>
+                            <option value="100">100个</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label>排序方式</label>
+                        <select id="sortOrder">
+                            <option value="relevance">相关性</option>
+                            <option value="date">发布时间</option>
+                            <option value="rating">评分</option>
+                            <option value="viewCount">观看次数</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label>发布时间</label>
+                        <select id="publishedAfter">
+                            <option value="">全部时间</option>
+                            <option value="today">今天</option>
+                            <option value="week">本周</option>
+                            <option value="month">本月</option>
+                            <option value="year">今年</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn-search" onclick="startSearch()">
+                        <span id="searchButtonText">开始搜索</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 进度显示区域 -->
+            <div id="progressSection" class="progress-section">
+                <h3 style="margin-bottom: 15px; color: #333;">📊 提取进度</h3>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="progressText" class="progress-text">准备开始...</div>
+            </div>
+
+            <!-- 错误信息区域 -->
+            <div id="errorMessage" class="error-message"></div>
+
+            <!-- 结果显示区域 -->
+            <div id="resultsSection" class="results-section">
+                <h3 style="margin-bottom: 20px; color: #333;">📋 提取结果</h3>
+                <div id="resultsStats" class="results-stats"></div>
+                
+                <div style="overflow-x: auto;">
+                    <table id="resultsTable" class="results-table">
+                        <thead>
+                            <tr>
+                                <th>频道名称</th>
+                                <th>频道ID</th>
+                                <th>订阅者数</th>
+                                <th>视频数量</th>
+                                <th>频道链接</th>
+                                <th>描述</th>
+                                <th>国家</th>
+                                <th>创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="download-section">
+                    <button class="btn-download" onclick="downloadExcel()">
+                        📥 下载Excel报表
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let searchResults = [];
+        let apiKeys = JSON.parse(localStorage.getItem('youtubeApiKeys') || '[]');
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedApiKey();
+        });
+
+        // 保存API密钥
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                showError('请输入API密钥');
+                return;
+            }
+
+            // 验证API密钥格式
+            if (!/^AIza[0-9A-Za-z-_]{35}$/.test(apiKey)) {
+                showError('API密钥格式不正确');
+                return;
+            }
+
+            // 保存到本地存储
+            localStorage.setItem('youtubeApiKey', apiKey);
+            
+            // 添加到历史记录
+            if (!apiKeys.includes(apiKey)) {
+                apiKeys.unshift(apiKey);
+                if (apiKeys.length > 5) apiKeys.pop(); // 只保留最近5个
+                localStorage.setItem('youtubeApiKeys', JSON.stringify(apiKeys));
+            }
+
+            showApiStatus('API密钥已保存', 'valid');
+            validateApiKey(apiKey);
+        }
+
+        // 加载保存的API密钥
+        function loadSavedApiKey() {
+            const savedKey = localStorage.getItem('youtubeApiKey');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+                validateApiKey(savedKey);
+            }
+        }
+
+        // 快速切换API密钥
+        function loadApiKeys() {
+            if (apiKeys.length === 0) {
+                showError('没有保存的API密钥');
+                return;
+            }
+
+            const select = document.createElement('select');
+            select.style.cssText = 'width: 100%; padding: 10px; margin: 10px 0;';
+            
+            apiKeys.forEach((key, index) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = `API ${index + 1}: ${key.substr(0, 8)}...${key.substr(-4)}`;
+                select.appendChild(option);
+            });
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+                justify-content: center; z-index: 1000;
+            `;
+
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; padding: 20px; border-radius: 10px; 
+                max-width: 400px; width: 90%;
+            `;
+
+            content.innerHTML = `
+                <h3 style="margin-bottom: 15px;">选择API密钥</h3>
+                <div style="margin-bottom: 15px;"></div>
+                <div style="text-align: right;">
+                    <button onclick="this.closest('.modal').remove()" style="margin-right: 10px; padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">取消</button>
+                    <button onclick="selectApiKey()" style="padding: 8px 16px; background: #FF0000; color: white; border: none; border-radius: 4px; cursor: pointer;">确定</button>
+                </div>
+            `;
+
+            content.children[1].appendChild(select);
+            modal.appendChild(content);
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+
+            window.selectApiKey = function() {
+                document.getElementById('apiKey').value = select.value;
+                validateApiKey(select.value);
+                modal.remove();
+            };
+        }
+
+        // 验证API密钥
+        async function validateApiKey(apiKey) {
+            try {
+                const response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${apiKey}`);
+                if (response.ok) {
+                    showApiStatus('API密钥有效 ✓', 'valid');
+                } else {
+                    showApiStatus('API密钥无效或已过期 ✗', 'invalid');
+                }
+            } catch (error) {
+                showApiStatus('无法验证API密钥', 'invalid');
+            }
+        }
+
+        // 显示API状态
+        function showApiStatus(message, type) {
+            const status = document.getElementById('apiStatus');
+            status.textContent = message;
+            status.className = `api-status ${type}`;
+            status.style.display = 'block';
+        }
+
+        // 开始搜索
+        async function startSearch() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const keyword = document.getElementById('searchKeyword').value.trim();
+
+            if (!apiKey) {
+                showError('请先配置YouTube API密钥');
+                return;
+            }
+
+            if (!keyword) {
+                showError('请输入搜索关键词');
+                return;
+            }
+
+            // 重置界面
+            hideError();
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('progressSection').style.display = 'block';
+            
+            const searchButton = document.querySelector('.btn-search');
+            const buttonText = document.getElementById('searchButtonText');
+            searchButton.disabled = true;
+            buttonText.innerHTML = '<span class="loading"></span>搜索中...';
+
+            try {
+                // 第一步：搜索视频
+                updateProgress(10, '搜索YouTube视频...');
+                const searchResults = await searchYouTubeVideos(apiKey, keyword);
+                
+                if (searchResults.length === 0) {
+                    throw new Error('没有找到相关视频');
+                }
+
+                // 第二步：获取频道信息
+                updateProgress(30, `找到 ${searchResults.length} 个视频，正在获取频道信息...`);
+                const channelIds = [...new Set(searchResults.map(video => video.channelId))];
+                const channelsData = await getChannelsData(apiKey, channelIds);
+
+                // 第三步：处理数据
+                updateProgress(80, '处理数据中...');
+                processResults(channelsData);
+
+                // 完成
+                updateProgress(100, '提取完成！');
+                setTimeout(() => {
+                    document.getElementById('progressSection').style.display = 'none';
+                    document.getElementById('resultsSection').style.display = 'block';
+                }, 1000);
+
+            } catch (error) {
+                showError(`搜索失败: ${error.message}`);
+                document.getElementById('progressSection').style.display = 'none';
+            } finally {
+                searchButton.disabled = false;
+                buttonText.textContent = '开始搜索';
+            }
+        }
+
+        // 搜索YouTube视频
+        async function searchYouTubeVideos(apiKey, keyword) {
+            const maxResults = document.getElementById('maxResults').value;
+            const order = document.getElementById('sortOrder').value;
+            const publishedAfter = getPublishedAfterDate();
+
+            let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=${maxResults}&order=${order}&key=${apiKey}`;
+            
+            if (publishedAfter) {
+                url += `&publishedAfter=${publishedAfter}`;
+            }
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || '搜索请求失败');
+            }
+
+            const data = await response.json();
+            return data.items.map(item => ({
+                videoId: item.id.videoId,
+                title: item.snippet.title,
+                channelId: item.snippet.channelId,
+                channelTitle: item.snippet.channelTitle,
+                publishedAt: item.snippet.publishedAt
+            }));
+        }
+
+        // 获取频道数据
+        async function getChannelsData(apiKey, channelIds) {
+            const channelsData = [];
+            const batchSize = 50; // YouTube API 每次最多查询50个频道
+
+            for (let i = 0; i < channelIds.length; i += batchSize) {
+                const batch = channelIds.slice(i, i + batchSize);
+                const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${batch.join(',')}&key=${apiKey}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.error('获取频道信息失败:', await response.text());
+                    continue;
+                }
+
+                const data = await response.json();
+                channelsData.push(...data.items);
+
+                // 更新进度
+                const progress = 30 + (i / channelIds.length) * 50;
+                updateProgress(progress, `获取频道信息 ${i + batch.length}/${channelIds.length}`);
+            }
+
+            return channelsData;
+        }
+
+        // 处理结果
+        function processResults(channelsData) {
+            searchResults = channelsData.map(channel => {
+                const snippet = channel.snippet;
+                const statistics = channel.statistics;
+                const branding = channel.brandingSettings;
+
+                return {
+                    channelName: snippet.title,
+                    channelId: channel.id,
+                    subscriberCount: statistics.subscriberCount || '未公开',
+                    videoCount: statistics.videoCount || '0',
+                    channelUrl: `https://www.youtube.com/channel/${channel.id}`,
+                    description: snippet.description || '',
+                    country: snippet.country || '未知',
+                    createdAt: snippet.publishedAt,
+                    thumbnailUrl: snippet.thumbnails?.default?.url || '',
+                    viewCount: statistics.viewCount || '0',
+                    email: branding?.channel?.unsubscribedTrailer || '', // 这里需要更复杂的提取逻辑
+                    customUrl: snippet.customUrl || ''
+                };
+            });
+
+            displayResults();
+        }
+
+        // 显示结果
+        function displayResults() {
+            const statsDiv = document.getElementById('resultsStats');
+            const tbody = document.getElementById('resultsTableBody');
+
+            // 显示统计信息
+            statsDiv.innerHTML = `
+                <strong>提取完成！</strong> 
+                共找到 <strong>${searchResults.length}</strong> 个独特频道
+            `;
+
+            // 清空表格
+            tbody.innerHTML = '';
+
+            // 填充表格数据
+            searchResults.forEach((channel, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${channel.channelName}</strong></td>
+                    <td><code>${channel.channelId}</code></td>
+                    <td>${formatNumber(channel.subscriberCount)}</td>
+                    <td>${formatNumber(channel.videoCount)}</td>
+                    <td><a href="${channel.channelUrl}" target="_blank" class="channel-link">访问频道</a></td>
+                    <td>${channel.description.length > 100 ? channel.description.substring(0, 100) + '...' : channel.description}</td>
+                    <td>${channel.country}</td>
+                    <td>${formatDate(channel.createdAt)}</td>
+                `;
+            });
+        }
+
+        // 下载Excel
+        function downloadExcel() {
+            if (searchResults.length === 0) {
+                showError('没有数据可以下载');
+                return;
+            }
+
+            // 准备Excel数据
+            const wsData = [
+                ['频道名称', '频道ID', '频道链接', '订阅者数', '视频数量', '总观看次数', '国家', '创建时间', '描述', '自定义URL']
+            ];
+
+            searchResults.forEach(channel => {
+                wsData.push([
+                    channel.channelName,
+                    channel.channelId,
+                    channel.channelUrl,
+                    channel.subscriberCount,
+                    channel.videoCount,
+                    channel.viewCount,
+                    channel.country,
+                    formatDate(channel.createdAt),
+                    channel.description,
+                    channel.customUrl
+                ]);
+            });
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // 设置列宽
+            ws['!cols'] = [
+                {wch: 20}, // 频道名称
+                {wch: 25}, // 频道ID
+                {wch: 40}, // 频道链接
+                {wch: 15}, // 订阅者数
+                {wch: 12}, // 视频数量
+                {wch: 15}, // 总观看次数
+                {wch: 10}, // 国家
+                {wch: 12}, // 创建时间
+                {wch: 50}, // 描述
+                {wch: 30}  // 自定义URL
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'YouTube频道数据');
+
+            // 下载文件
+            const keyword = document.getElementById('searchKeyword').value;
+            const filename = `YouTube频道数据_${keyword}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        // 工具函数
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function formatNumber(num) {
+            if (num === '未公开' || !num) return num;
+            return parseInt(num).toLocaleString();
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString();
+        }
+
+        function getPublishedAfterDate() {
+            const option = document.getElementById('publishedAfter').value;
+            const now = new Date();
+            
+            switch(option) {
+                case 'today':
+                    return new Date(now.setHours(0,0,0,0)).toISOString();
+                case 'week':
+                    return new Date(now.setDate(now.getDate() - 7)).toISOString();
+                case 'month':
+                    return new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+                case 'year':
+                    return new Date(now.setFullYear(now.getFullYear() - 1)).toISOString();
+                default:
+                    return '';
+            }
+        }
+    </script>
+</body>
+</html>
